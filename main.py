@@ -22,25 +22,19 @@ def take_command():
             text = r.recognize_google(audio, language="en_in")
             print(f"User is saying: {text}")
 
-            if text.lower().startswith("open "):
-                command = text.lower().split("open", 1)[1].strip()
-                open_resource(command)
-
-            elif "date" in text.lower():
-                watch(text)
-            elif "calculate" in text.lower() or "math" in text.lower():
-                calculate(text)
-            else:
-                print("Voice error")
-
+            text = text.replace('one', '1').replace('two','2').replace('three','3').replace('four','4').replace('five','5')
+            text = text.replace('six', '6').replace('seven', '7').replace('eight', '8').replace('nine', '9')
             return text
-
         except sr.UnknownValueError:
             return handle_exceptions('UnknownValueError')
 
         except sr.WaitTimeoutError:
             return handle_exceptions('WaitTimeoutError')
 
+        except Exception as e:
+            print(f"Exception in take_command:{e}")
+            print(f"Exception details:{repr(e)}")
+            return handle_exceptions('OtherError')
         # Final message --->
         finally:
             print("Function executed successfully.")
@@ -56,24 +50,35 @@ def validate_command(command):
 
 # Process command function --->
 
-def process_command():
+def process_command(user_input=None):
     while True:
-        choice = input("Enter 1 to enter your request in text or enter 2 for voice input.")
-        if choice == '1':
-            query = input("Please enter your command: ")
-            if query.lower().startswith("open "):
-                command = query[5:].strip()
-                open_resource(command)
-            else:
-                speaker.speak(query)
-            break
-        elif choice == '2':
-            query = take_command()
-            print(validate_command(query))
-            break
+        if user_input:
+            query = user_input
         else:
-            print("Looks like you have pressed wrong button. Please try again.")
-            print("Press 1 on your num-pad to enter your request in text or press 2 on your num-pad for voice input.")
+            choice = input("Enter 1 to enter your request in text or enter 2 for voice input.")
+            if choice == '1':
+                query = input("Please enter your command: ")
+            elif choice == '2':
+                query = take_command()
+                print(validate_command(query))
+            else:
+                print("Looks like you have pressed wrong button. Please try again.")
+                print("Press 1 on your num-pad to enter your request in text or press 2 on your num-pad for voice input.")
+                continue
+
+        if query.lower().startswith("open "):
+            command = query[5:].strip()
+            open_resource(command)
+        elif "calculate" in query.lower() or "math" in query.lower():
+            system_response =calculate(query)
+        elif "date" in query.lower():
+            system_response = watch(query)
+        else:
+            system_response = "Sorry, I couldn't understand that."
+
+        print(system_response)
+        speaker.speak(system_response)
+        break
 
 
 # Open resources function --->
@@ -152,62 +157,83 @@ def calculate(text):
         square_root_match = re.search(r'square root of (.*)', text, re.IGNORECASE)
         if square_root_match:
             expression = square_root_match.group(1).strip()
-            result = math.sqrt(float(expression))
-            speaker.speak(f"The square root of {expression} is {result}")
+            result = round(math.sqrt(float(expression)), 2)
+            response = f"The square root of {expression} is {result}"
+            speaker.speak(response)
+            return response
         else:
             cube_root_match = re.search(r'cube root of (.*)', text, re.IGNORECASE)
             if cube_root_match:
                 expression = cube_root_match.group(1).strip()
                 result = round(math.pow(float(expression), 1 / 3), 2)
-                #todo work here:
-                speaker.speak(f"The cube root of {expression} is {result}")
+                response = f"The cube root of {expression} is {result}"
+                speaker.speak(response)
+                return response
             else:
                 text = text.replace('pi', 'math.pi')
                 match = re.search(r'calculate(.*)', text, re.IGNORECASE)
                 if match:
                     expression = match.group(1).strip()
-                    result = eval(expression)
-                    speaker.speak(f"The result of {expression} is {result}")
+                    result = round(eval(expression),2)
+                    response = f"The result of {expression} is {result}"
+                    speaker.speak(response)
+                    return response
     except Exception as e:
-        speaker.speak(f"Sorry I couldn't calculate that. Please try again.")
+        response = f"Sorry I couldn't calculate that. Please try again."
+        speaker.speak(response)
+        return response
 
 
 def open_resource(resource):
-    websites = ['amazon', 'youtube', 'wikipedia', 'facebook', 'instagram', 'whatsapp']
+    websites = ['amazon', 'youtube', 'wikipedia', 'facebook', 'instagram', 'whatsapp', 'linkedin']
     apps = ['msword', 'excel', 'powerpoint', 'calc', 'notepad', 'mspaint']
     if resource.lower() in websites:
-        speaker.speak(f"Opening {resource}.")
+        response = f"Opening {resource}."
+        speaker.speak(response)
         time.sleep(1)
         webbrowser.open(f'http://{resource}.com')
+        return response
     elif resource.lower() in apps:
         if resource.lower() == 'msword':
-            speaker.speak("Opening MS-WORD")
+            response="Opening MS-WORD"
+            speaker.speak(response)
             time.sleep(1)
             subprocess.call(['start', 'winword'], shell=True)
+            return response
         elif resource.lower() == 'excel':
-            speaker.speak("Opening MS-Excel")
+            response = "Opening MS-Excel"
+            speaker.speak(response)
             time.sleep(1)
             subprocess.call(['start', 'excel'], shell=True)
+            return response
         elif resource.lower() == 'powerpoint':
-            speaker.speak("Opening MS-Powerpoint")
+            response = "Opening MS-Powerpoint"
+            speaker.speak(response)
             time.sleep(1)
             subprocess.call(['start', 'powerpnt'], shell=True)
+            return response
         elif resource.lower() == 'calc':
-            speaker.speak("Opening calculator")
+            response = "Opening calculator"
+            speaker.speak(response)
             time.sleep(1)
             subprocess.call(['calc'])
+            return response
         elif resource.lower() == 'notepad':
-            speaker.speak("Opening Notepad")
+            response = "Opening Notepad"
+            speaker.speak(response)
             time.sleep(1)
             subprocess.call(['notepad'])
+            return response
         elif resource.lower() == 'mspaint':
-            speaker.speak("Opening MS-paint")
+            response = "Opening MS-paint"
+            speaker.speak(response)
             time.sleep(1)
             subprocess.call(['mspaint'])
+            return response
     else:
-        print(f"Unknown request: {resource}")
-        speaker.speak("Sorry, I didn't catch that. Could you please repeat your request?")
-
+        response = "Sorry, I didn't catch that. Could you please repeat your request?"
+        speaker.speak(response)
+        return response
 
 # Error Handling --->
 
